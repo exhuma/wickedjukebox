@@ -1,4 +1,4 @@
-from model import Base
+from jukebase import Base
 from sqlalchemy.types import (
         Integer,
         Unicode,
@@ -49,26 +49,26 @@ song_has_genre = Table("song_has_genre", Base.metadata,
 
 song_has_tag = Table("song_has_tag", Base.metadata,
     Column('song_id', Integer, nullable=False),
-    Column('tag', String(32), ForeignKey('tag.name'), nullable=False),
+    Column('tag', String(32), ForeignKey('tag.label'), nullable=False),
     PrimaryKeyConstraint('song_id', 'tag')
     )
 
 #user_album_stats = Table("user_album_stats", Base.metadata,
-#    Column('user_id', Integer, ForeignKey('user.id'), Integer, nullable=False),
+#    Column('user_id', Integer, ForeignKey('users.id'), Integer, nullable=False),
 #    Column('album_id', ForeignKey('album.id'), Integer, nullable=False),
 #    Column('when', DateTime, nullable=False),
 #    PrimaryKeyConstraint('user_id', 'album_id')
 #    )
 
 user_song_standing = Table("user_song_standing", Base.metadata,
-    Column('user_id', Integer, ForeignKey('user.id'), nullable=False),
+    Column('user_id', Integer, ForeignKey('users.id'), nullable=False),
     Column('song_id', Integer, ForeignKey('song.id'), nullable=False),
     Column('standing', String(12), nullable=False),
     PrimaryKeyConstraint('user_id', 'song_id')
     )
 
 user_song_stats = Table("user_song_stats", Base.metadata,
-    Column('user_id', Integer, ForeignKey('user.id'), nullable=False),
+    Column('user_id', Integer, ForeignKey('users.id'), nullable=False),
     Column('song_id', Integer, ForeignKey('song.id'), nullable=False),
     Column('when', DateTime, nullable=False),
     PrimaryKeyConstraint('user_id', 'song_id', 'when')
@@ -78,9 +78,8 @@ class Album(Base):
     __tablename__ = "album"
     __table_args__ = (
             UniqueConstraint('path'),
-            Index('artist_id'),
-            Index('name'),
-            Index('type'),
+            Index('album_name_idx', 'name'),
+            Index('album_type_idx', 'type'),
             )
     id = Column(Integer, nullable=False, primary_key=True)
     artist_id = Column(Integer, ForeignKey('artist.id'), nullable=False)
@@ -109,7 +108,7 @@ class Channel(Base):
     name = Column(Unicode(32), nullable=False)
     public = Column(Boolean, default=True)
     backend = Column(Unicode(64), nullable=False)
-    backend_params = Column(Unicode, nullable=False, default='')
+    backend_params = Column(Unicode, nullable=False, default=u'')
     ping = Column(DateTime, default=None)
     active = Column(Boolean, default=False)
     status = Column(Integer, default=None)
@@ -126,7 +125,7 @@ class DynamicPlaylist(Base):
 class Event(Base):
     __tablename__ = "events"
     __table_args__ = (
-            Index('startdate', 'enddate'),
+            Index('events_date_idx', 'startdate', 'enddate'),
             )
     id = Column(Integer, nullable=False, primary_key=True)
     title = Column(Unicode, nullable=False)
@@ -156,9 +155,6 @@ class Group(Base):
 
 class Lastfm_queue(Base):
     __tablename__ = "lastfm_queue"
-    __table_args__ = (
-            Index('song_id'),
-            )
     queue_id = Column(Integer, nullable=False, primary_key=True)
     song_id = Column(Integer, ForeignKey('song.id', onupdate="CASCADE", ondelete="CASCADE"), nullable=False)
     time_played = Column(DateTime, nullable=False)
@@ -173,13 +169,13 @@ class Log(Base):
 class Queue(Base):
     __tablename__ = "queue"
     __table_args__ = (
-            Index('song_id'),
-            Index('user_id'),
-            Index('channel_id'),
+            Index('queue_song_idx', 'song_id'),
+            Index('queue_user_idx', 'user_id'),
+            Index('queue_channel_idx', 'channel_id'),
             )
     id = Column(Integer, primary_key=True, nullable=False)
     song_id = Column(Integer, ForeignKey('song.id', onupdate="CASCADE", ondelete="CASCADE"), nullable=False)
-    user_id = Column(Integer, ForeignKey('user.id', onupdate="CASCADE", ondelete="CASCADE"), default=None)
+    user_id = Column(Integer, ForeignKey('users.id', onupdate="CASCADE", ondelete="CASCADE"), default=None)
     channel_id = Column(Integer, ForeignKey('channel.id', onupdate="CASCADE", ondelete="CASCADE"), nullable=False)
     position = Column(Integer, default=0)
     added = Column(DateTime, nullable=False)
@@ -187,7 +183,7 @@ class Queue(Base):
 class RenderPreset(Base):
     __tablename__ = "render_presets"
     __table_args__ = (
-            Index('cateory', 'preset'),
+            Index('render_presets_idx1', 'category', 'preset'),
             )
     id = Column(Integer, primary_key=True, nullable=False)
     category = Column(Unicode(64), nullable=False)
@@ -202,13 +198,11 @@ class Setting(Base):
     __tablename__ = "setting"
     __table_args__ = (
             PrimaryKeyConstraint('var', 'channel_id', 'user_id'),
-            Index('channel_id'),
-            Index('user_id')
             )
     var = Column(Unicode(32), nullable=False)
     value = Column(Unicode)
     channel_id = Column(Integer, ForeignKey( 'channel.id', onupdate="CASCADE", ondelete="CASCADE"), nullable=False, default=0)
-    user_id = Column(Integer, ForeignKey( 'user.id', onupdate="CASCADE", ondelete="CASCADE"), nullable=False, default=0)
+    user_id = Column(Integer, ForeignKey( 'users.id', onupdate="CASCADE", ondelete="CASCADE"), nullable=False, default=0)
 
 class SettingText(Base):
     __tablename__ = "setting_text"
@@ -218,11 +212,11 @@ class SettingText(Base):
 class Shoutbox(Base):
     __tablename__ = "shoutbox"
     __table_args__ = (
-            Index('added'),
-            Index('user_id'),
+            Index('shoutbox_added_idx', 'added'),
+            Index('shoutbox_user_idx', 'user_id'),
             )
     id = Column(Integer, nullable=False, primary_key=True)
-    user_id = Column(Integer, ForeignKey('user.id', onupdate="CASCADE", ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer, ForeignKey('users.id', onupdate="CASCADE", ondelete="CASCADE"), nullable=False)
     message = Column(Unicode(255), nullable=False)
     added = Column(DateTime, nullable=False)
 
@@ -276,7 +270,7 @@ class Users(Base):
     fullname = Column(Unicode(64), nullable=False)
     email = Column(Unicode(128), nullable=False)
     credits = Column(Integer, nullable=False)
-    group_id = Column(Integer, ForeignKey('group.id', onupdate="CASCADE", ondelete="CASCADE"), nullable=False)
+    group_id = Column(Integer, ForeignKey('groups.id', onupdate="CASCADE", ondelete="CASCADE"), nullable=False)
     downloads = Column(Integer, nullable=False, default=0)
     votes = Column(Integer, nullable=False, default=0)
     skips = Column(Integer, nullable=False, default=0)
