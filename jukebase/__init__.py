@@ -1,7 +1,10 @@
 from sqlalchemy import create_engine, MetaData
 from sqlalchemy.ext.declarative import declarative_base
 
-engine = create_engine('sqlite://', echo=True)
+Base = None
 
-Base = declarative_base(metadata=MetaData(), bind=engine)
+def make_declarative_base(uri, echo=False):
+    global Base
+    engine = create_engine(uri, echo=echo)
+    Base = declarative_base(metadata=MetaData(), bind=engine)
 
