@@ -1,4 +1,4 @@
-from jukebase import Base
+from wickedjukebox import Base
 from sqlalchemy.types import (
         Integer,
         Unicode,
@@ -53,12 +53,12 @@ song_has_tag = Table("song_has_tag", Base.metadata,
     PrimaryKeyConstraint('song_id', 'tag')
     )
 
-#user_album_stats = Table("user_album_stats", Base.metadata,
-#    Column('user_id', Integer, ForeignKey('users.id'), Integer, nullable=False),
-#    Column('album_id', ForeignKey('album.id'), Integer, nullable=False),
-#    Column('when', DateTime, nullable=False),
-#    PrimaryKeyConstraint('user_id', 'album_id')
-#    )
+user_album_stats = Table("user_album_stats", Base.metadata,
+    Column('user_id', Integer, ForeignKey('users.id'), nullable=False),
+    Column('album_id', Integer, ForeignKey('album.id'), nullable=False),
+    Column('when', DateTime, nullable=False),
+    PrimaryKeyConstraint('user_id', 'album_id')
+    )
 
 user_song_standing = Table("user_song_standing", Base.metadata,
     Column('user_id', Integer, ForeignKey('users.id'), nullable=False),
